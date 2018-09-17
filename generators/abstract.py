@@ -11,7 +11,7 @@ class BCType(enum.Enum):
 
 class Block:
     """
-    Пока предполагается, что в данном классе будет содержаться информация о прямоугольном (2d или 3d) блоке,
+    Пока предполагается, что в данном классе будет содержаться информация об ортогональном трехмерном блоке,
     включая данные о типе его границ (стенка или не стенка). Сетка может быть неравномерной по всем направлениям.
     Также должны расчитываться шаги сетки по всем направлениям в каждом узле и расстояние до стенки в каждом узле.
     """
@@ -78,9 +78,34 @@ class Generator(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_pulsation_at_node(self, i: int, j: int, k: int, time: np.ndarray) -> Tuple[float, float, float]:
+    def get_pulsation_at_node(self, i: int, j: int, k: int, time: np.ndarray) -> \
+            Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Вычисление пульсаций в узле в заданные моменты времени."""
         pass
+
+    @classmethod
+    def get_divergence(cls, vel: Tuple[np.ndarray, np.ndarray, np.ndarray],
+                       mesh: Tuple[np.ndarray, np.ndarray, np.ndarray],
+                       shape: tuple) -> np.ndarray:
+        res = np.zeros(shape)
+        for i in range(shape[0] - 1):
+            for j in range(shape[1] - 1):
+                if shape[2] > 1:
+                    for k in range(shape[2] - 1):
+                        dvx_dx = (vel[0][i + 1, j, k] - vel[0][i, j, k]) / (mesh[0][i + 1, j, k] - mesh[0][i, j, k])
+                        dvy_dy = (vel[1][i, j + 1, k] - vel[1][i, j, k]) / (mesh[1][i, j + 1, k] - mesh[1][i, j, k])
+                        dvz_dz = (vel[2][i, j, k + 1] - vel[2][i, j, k]) / (mesh[2][i, j, k + 1] - mesh[2][i, j, k])
+                        res[i, j, k] = dvx_dx + dvy_dy + dvz_dz
+                else:
+                    dvx_dx = (vel[0][i + 1, j, 0] - vel[0][i, j, 0]) / (mesh[0][i + 1, j, 0] - mesh[0][i, j, 0])
+                    dvy_dy = (vel[1][i, j + 1, 0] - vel[1][i, j, 0]) / (mesh[1][i, j + 1, 0] - mesh[1][i, j, 0])
+                    dvz_dz = 0
+                    res[i, j, 0] = dvx_dx + dvy_dy + dvz_dz
+        res[shape[0]-1, 0: shape[1]-1, 0: shape[2]-1] = res[shape[0]-2, 0: shape[1]-1, 0: shape[2]-1]
+        res[0: shape[0], shape[1]-1, 0: shape[2]-1] = res[0: shape[0], shape[1]-2, 0: shape[2]-1]
+        if shape[2] > 1:
+            res[0: shape[0], 0: shape[1], shape[2]-1] = res[0: shape[0], 0: shape[1], shape[2]-2]
+        return res
 
     @abstractmethod
     def _compute_aux_data(self):
