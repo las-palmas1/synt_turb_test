@@ -8,7 +8,7 @@ class Analyzer:
     def __init__(self, generator: Generator):
         self.generator = generator
 
-    def plot_2d_velocity_field(self, figzie=(7, 7)):
+    def plot_2d_velocity_field(self, figsize=(7, 7), num_levels=20, vmin=-3.5, vmax=3.5):
         x = self.generator.block.mesh[0][:, :, 0]
         y = self.generator.block.mesh[1][:, :, 0]
         u3d, v3d, w3d = self.generator.get_velocity_field(0)
@@ -16,8 +16,8 @@ class Analyzer:
         v = v3d[:, :, 0]
         w = w3d[:, :, 0]
 
-        plt.figure(figsize=figzie)
-        plt.contourf(x, y, u, cmap='rainbow')
+        plt.figure(figsize=figsize)
+        plt.contourf(x, y, u, num_levels, cmap='rainbow', vmin=vmin, vmax=vmax)
         plt.title('U', fontsize=16)
         plt.colorbar()
         plt.xticks(x[:, 0], [])
@@ -25,8 +25,8 @@ class Analyzer:
         plt.grid()
         plt.show()
 
-        plt.figure(figsize=figzie)
-        plt.contourf(x, y, v, cmap='rainbow')
+        plt.figure(figsize=figsize)
+        plt.contourf(x, y, v, num_levels, cmap='rainbow', vmin=vmin, vmax=vmax)
         plt.title('V', fontsize=16)
         plt.colorbar()
         plt.xticks(x[:, 0], [])
@@ -34,8 +34,8 @@ class Analyzer:
         plt.grid()
         plt.show()
 
-        plt.figure(figsize=figzie)
-        plt.contourf(x, y, w, cmap='rainbow')
+        plt.figure(figsize=figsize)
+        plt.contourf(x, y, w, num_levels, cmap='rainbow', vmin=vmin, vmax=vmax)
         plt.title('W', fontsize=16)
         plt.colorbar()
         plt.xticks(x[:, 0], [])
@@ -101,11 +101,11 @@ class Analyzer:
         plt.plot(t_arr, vw_av, lw=1, color='green', ls=':', label=r'$<v_y v_z>$')
         plt.legend(fontsize=12)
         plt.xlim(0, num_ts*ts)
-        plt.ylim(-0.5, 1.5)
+        # plt.ylim(-0.5, 1.5)
         plt.grid()
         plt.show()
 
-    def plot_divergence_field_2d(self, figzie=(7, 7)):
+    def plot_divergence_field_2d(self, figzie=(7, 7), num_levels=20, vmin=-300, vmax=300):
         x = self.generator.block.mesh[0][:, :, 0]
         y = self.generator.block.mesh[1][:, :, 0]
         vel = self.generator.get_velocity_field(0)
@@ -113,7 +113,7 @@ class Analyzer:
         div_2d = div[:, :, 0]
 
         plt.figure(figsize=figzie)
-        plt.contourf(x, y, div_2d, cmap='rainbow')
+        plt.contourf(x, y, div_2d, num_levels, cmap='rainbow', vmin=vmin, vmax=vmax)
         plt.title(r'$div(U)$', fontsize=16)
         plt.colorbar()
         plt.xticks(x[:, 0], [])
@@ -163,11 +163,48 @@ class Analyzer:
         plt.grid()
         plt.xlim(xmin=0, xmax=ts*num_ts)
         plt.ylim(ymin=-1.1, ymax=1.1)
+        plt.xlabel(r'$r,\ м$', fontsize=14)
         plt.legend(fontsize=12)
         plt.show()
 
     def plot_two_point_time_correlation(self, i: int, j: int, k: int,
-                                        dt: float, ts: float, num_ts: int):
-        pass
+                                        t0: float, t1: float, t2: float, num_dt: int=50, num_av: int=100,
+                                        figsize=(7, 7)):
+        # Осреднение будет происходить от момента t0 до момента t1 + dt_arr[i] для определения
+        # i-ого значения коэффициента автокорреляции
+        dt_arr = np.linspace(0, t2 - t1, num_dt)
+        cor_uu = np.zeros(num_dt)
+        cor_vv = np.zeros(num_dt)
+        cor_ww = np.zeros(num_dt)
+        t0_arr = np.linspace(t0, t1, num_av)
+        u0, v0, w0 = self.generator.get_pulsation_at_node(i, j, k, t0_arr)
+        u0u0_av = self._get_average(u0 * u0)
+        v0v0_av = self._get_average(v0 * v0)
+        w0w0_av = self._get_average(w0 * w0)
+        for n in range(1, num_dt):
+            t_arr = np.linspace(t0, t1 + dt_arr[n], num_av)
+            u, v, w = self.generator.get_pulsation_at_node(i, j, k, t_arr)
+            uu_av = self._get_average(u * u)
+            vv_av = self._get_average(v * v)
+            ww_av = self._get_average(w * w)
+            u0u_av = self._get_average(u0 * u)
+            v0v_av = self._get_average(v0 * v)
+            w0w_av = self._get_average(w0 * w)
+            cor_uu[n] = u0u_av / (np.sqrt(u0u0_av) * np.sqrt(uu_av))
+            cor_vv[n] = v0v_av / (np.sqrt(v0v0_av) * np.sqrt(vv_av))
+            cor_ww[n] = w0w_av / (np.sqrt(w0w0_av) * np.sqrt(ww_av))
+
+        plt.figure(figsize=figsize)
+        plt.plot(dt_arr, cor_uu, color='red', lw=1.5, label=r'$R_{xx}^t$')
+        plt.plot(dt_arr, cor_vv, color='blue', lw=1.5, label=r'$R_{yy}^t$')
+        plt.plot(dt_arr, cor_ww, color='green', lw=1.5, label=r'$R_{zz}^t$')
+        plt.grid()
+        plt.xlim(xmin=0, xmax=dt_arr.max())
+        plt.ylim(ymin=-1.1, ymax=1.1)
+        plt.xlabel(r'$\Delta t,\ с$', fontsize=14)
+        plt.legend(fontsize=12)
+        plt.show()
+
+
 
 
