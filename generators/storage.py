@@ -77,9 +77,9 @@ class Smirnov(Generator):
                         [self.re_xz[i, j, k], self.re_yz[i, j, k], self.re_zz[i, j, k]],
                     ])
                     w, v = la.eig(mat)
-                    self.c1[i, j, k] = w[0]
-                    self.c2[i, j, k] = w[1]
-                    self.c3[i, j, k] = w[2]
+                    self.c1[i, j, k] = np.sqrt(w[0])
+                    self.c2[i, j, k] = np.sqrt(w[1])
+                    self.c3[i, j, k] = np.sqrt(w[2])
                     v_tr = v.transpose()
                     self.a11[i, j, k] = v_tr[0, 0]
                     self.a12[i, j, k] = v_tr[0, 1]
@@ -125,25 +125,25 @@ class Smirnov(Generator):
             k2_p = self.k2 * (self.l_t / self.tau_t) / self.c2[i, j, k]
             k3_p = self.k3 * (self.l_t / self.tau_t) / self.c3[i, j, k]
             modes1 = self.p1 * np.cos(
-                k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                k3_p * self.block.mesh[2][i, j, k] + self.omega * t
+                (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                 k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * t / self.tau_t
             ) + self.q1 * np.sin(
-                k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                k3_p * self.block.mesh[2][i, j, k] + self.omega * t
+                (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                 k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * t / self.tau_t
             )
             modes2 = self.p2 * np.cos(
-                k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                k3_p * self.block.mesh[2][i, j, k] + self.omega * t
+                (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                 k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * t / self.tau_t
             ) + self.q2 * np.sin(
-                k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                k3_p * self.block.mesh[2][i, j, k] + self.omega * t
+                (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                 k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * t / self.tau_t
             )
             modes3 = self.p3 * np.cos(
-                k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                k3_p * self.block.mesh[2][i, j, k] + self.omega * t
+                (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                 k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * t / self.tau_t
             ) + self.q3 * np.sin(
-                k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                k3_p * self.block.mesh[2][i, j, k] + self.omega * t
+                (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                 k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * t / self.tau_t
             )
             v1[n] = np.sqrt(2 / self.mode_num) * modes1.sum()
             v2[n] = np.sqrt(2 / self.mode_num) * modes2.sum()
@@ -167,25 +167,25 @@ class Smirnov(Generator):
                     k2_p = self.k2 * (self.l_t / self.tau_t) / self.c2[i, j, k]
                     k3_p = self.k3 * (self.l_t / self.tau_t) / self.c3[i, j, k]
                     modes1 = self.p1 * np.cos(
-                        k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                        k3_p * self.block.mesh[2][i, j, k] + self.omega * time
+                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
                     ) + self.q1 * np.sin(
-                        k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                        k3_p * self.block.mesh[2][i, j, k] + self.omega * time
+                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
                     )
                     modes2 = self.p2 * np.cos(
-                        k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                        k3_p * self.block.mesh[2][i, j, k] + self.omega * time
+                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
                     ) + self.q2 * np.sin(
-                        k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                        k3_p * self.block.mesh[2][i, j, k] + self.omega * time
+                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
                     )
                     modes3 = self.p3 * np.cos(
-                        k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                        k3_p * self.block.mesh[2][i, j, k] + self.omega * time
+                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
                     ) + self.q3 * np.sin(
-                        k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                        k3_p * self.block.mesh[2][i, j, k] + self.omega * time
+                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
                     )
                     v1[i, j, k] = np.sqrt(2 / self.mode_num) * modes1.sum()
                     v2[i, j, k] = np.sqrt(2 / self.mode_num) * modes2.sum()
