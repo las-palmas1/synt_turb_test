@@ -232,6 +232,30 @@ class Analyzer:
         k_mag = m_mag * 2 * np.pi / length
         return k_mag, e_k_mag
 
+    @classmethod
+    def get_spectrum_3d(cls, x: np.ndarray, u: np.ndarray, v: np.ndarray, w: np.ndarray, num_pnt=100):
+        """Вычисление двухмерного энергетического спектра для компоненты скорости на квадратной сетке."""
+        u_f = np.fft.fftn(u)
+        v_f = np.fft.fftn(v)
+        w_f = np.fft.fftn(w)
+        u_f = np.fft.fftshift(u_f)
+        v_f = np.fft.fftshift(v_f)
+        w_f = np.fft.fftshift(w_f)
+        length = x.max() - x.min()
+        m1, m2, m3 = np.meshgrid(
+            np.linspace(-x.shape[0] / 2, x.shape[0] / 2 - 1, x.shape[0]),
+            np.linspace(-x.shape[0] / 2, x.shape[0] / 2 - 1, x.shape[0]),
+            np.linspace(-x.shape[0] / 2, x.shape[0] / 2 - 1, x.shape[0]),
+        )
+        m_grid = np.sqrt(m1 ** 2 + m2 ** 2 + m3 ** 2)
+        energy = 0.5 * (np.abs(u_f)**2 + np.abs(v_f)**2 + np.abs(w_f)**2) * (1 / x.shape[0])**6
+        m_mag = np.linspace(0, m_grid.max(), num_pnt)
+        e_k_mag = np.zeros(num_pnt)
+        for i in range(num_pnt):
+            e_k_mag[i] = cls._get_energy(m_grid, energy, m_mag[i]) * length / (2 * np.pi)
+        k_mag = m_mag * 2 * np.pi / length
+        return k_mag, e_k_mag
+
     def plot_spectrum_2d(self, figsize=(7, 7), num_pnt=100):
         if self.generator.block.shape[0] != self.generator.block.shape[1]:
             raise Exception('Для построения спектра блок должен быть квадратным')
@@ -245,13 +269,34 @@ class Analyzer:
         k_w, e_w = self.get_spectrum_2d(x, w, num_pnt)
 
         plt.figure(figsize=figsize)
-        plt.plot(k_u, e_u, color='red', label='u', lw=1.5)
-        plt.plot(k_v, e_v, color='blue', label='v', lw=1.5)
-        plt.plot(k_w, e_w, color='green', label='w', lw=1.5)
+        plt.plot(k_u, e_u, color='red', label=r'$E_u$', lw=1.5)
+        plt.plot(k_v, e_v, color='blue', label=r'$E_v$', lw=1.5)
+        plt.plot(k_w, e_w, color='green', label=r'$E_w$', lw=1.5)
+        plt.plot(k_w, e_u + e_v + e_w, color='black', label=r'$E_\Sigma$', lw=2.5)
+        k = np.logspace(-2, 1, 100)
+        plt.plot(k, self.generator.get_desired_spectrum(k), color='black', ls='--', lw=1.5)
+        plt.ylim(1e-3, 1e1)
         plt.yscale('log')
         plt.xscale('log')
         plt.grid(which='both')
         plt.legend(fontsize=12)
+        plt.show()
+
+    def plot_spectrum_3d(self, figsize=(7, 7), num_pnt=100):
+        if self.generator.block.shape[0] != self.generator.block.shape[1] or \
+                self.generator.block.shape[0] != self.generator.block.shape[2]:
+            raise Exception('Для построения трехмерного спектра блок должен быть кубическим')
+        u, v, w = self.generator.get_velocity_field(0)
+        x = self.generator.block.mesh[0][:, 0, 0]
+        k, e = self.get_spectrum_3d(x, u, v, w, num_pnt)
+        plt.figure(figsize=figsize)
+        plt.plot(k, e, color='red', lw=2.5)
+        k = np.logspace(-2, 1, 100)
+        plt.plot(k, self.generator.get_desired_spectrum(k), color='black', ls='--', lw=1.5)
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.grid(which='both')
+        plt.ylim(1e-3, 1e1)
         plt.show()
 
 

@@ -198,6 +198,10 @@ class Smirnov(Generator):
         u3 = self.a31 * w1 + self.a32 * w2 + self.a33 * w3
         return u1, u2, u3
 
+    @classmethod
+    def _get_energy_desired(cls, k):
+        return 16 * (2 / np.pi) ** 0.5 * k**4 * np.exp(-2 * k**2)
+
 
 
 

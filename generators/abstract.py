@@ -65,10 +65,9 @@ class Generator(metaclass=ABCMeta):
         """Для спектральных методов следует переопределить. По умолчанию возвращает ноль."""
         return 0.
 
-    def get_desired_spectrum(self, k1, k2, num: int) -> Tuple[np.ndarray, np.ndarray]:
-        k_arr = np.linspace(k1, k2, num)
+    def get_desired_spectrum(self, k_arr: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         E_arr = np.array([self._get_energy_desired(k) for k in k_arr])
-        return k_arr, E_arr
+        return E_arr
 
     @abstractmethod
     def get_velocity_field(self, time) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
