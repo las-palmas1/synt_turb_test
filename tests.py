@@ -67,7 +67,7 @@ class SmirnovTest(unittest.TestCase):
     как и в статье, в которой изложен данный метод.
     """
     def setUp(self):
-        n = 50
+        n = 80
         size = 80
         mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
         # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])

@@ -2,6 +2,7 @@ from generators.abstract import BCType, Generator, Block
 from typing import List, Tuple
 import numpy as np
 import numpy.linalg as la
+from generators.tools import smirnov_compute_velocity_field
 
 
 class Lund(Generator):
@@ -157,45 +158,55 @@ class Smirnov(Generator):
         return u1, u2, u3
 
     def get_velocity_field(self, time) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        v1 = np.zeros(self.block.shape)
-        v2 = np.zeros(self.block.shape)
-        v3 = np.zeros(self.block.shape)
-        for i in range(self.block.shape[0]):
-            for j in range(self.block.shape[1]):
-                for k in range(self.block.shape[2]):
-                    k1_p = self.k1 * (self.l_t / self.tau_t) / self.c1[i, j, k]
-                    k2_p = self.k2 * (self.l_t / self.tau_t) / self.c2[i, j, k]
-                    k3_p = self.k3 * (self.l_t / self.tau_t) / self.c3[i, j, k]
-                    modes1 = self.p1 * np.cos(
-                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
-                    ) + self.q1 * np.sin(
-                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
-                    )
-                    modes2 = self.p2 * np.cos(
-                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
-                    ) + self.q2 * np.sin(
-                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
-                    )
-                    modes3 = self.p3 * np.cos(
-                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
-                    ) + self.q3 * np.sin(
-                        (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
-                         k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
-                    )
-                    v1[i, j, k] = np.sqrt(2 / self.mode_num) * modes1.sum()
-                    v2[i, j, k] = np.sqrt(2 / self.mode_num) * modes2.sum()
-                    v3[i, j, k] = np.sqrt(2 / self.mode_num) * modes3.sum()
-        w1 = self.c1 * v1
-        w2 = self.c2 * v2
-        w3 = self.c3 * v3
-        u1 = self.a11 * w1 + self.a12 * w2 + self.a13 * w3
-        u2 = self.a21 * w1 + self.a22 * w2 + self.a23 * w3
-        u3 = self.a31 * w1 + self.a32 * w2 + self.a33 * w3
+        vel = smirnov_compute_velocity_field(
+            self.k1, self.k2, self.k3, self.p1, self.p2, self.p3,
+            self.q1, self.q2, self.q3, self.omega, self.c1, self.c2, self.c3,
+            self.a11, self.a12, self.a13, self.a21, self.a22, self.a23, self.a31, self.a32, self.a33,
+            self.block.mesh[0], self.block.mesh[1], self.block.mesh[2], self.l_t, self.tau_t, self.mode_num,
+            time
+        )
+        u1 = vel[0]
+        u2 = vel[1]
+        u3 = vel[2]
+        # v1 = np.zeros(self.block.shape)
+        # v2 = np.zeros(self.block.shape)
+        # v3 = np.zeros(self.block.shape)
+        # for i in range(self.block.shape[0]):
+        #     for j in range(self.block.shape[1]):
+        #         for k in range(self.block.shape[2]):
+        #             k1_p = self.k1 * (self.l_t / self.tau_t) / self.c1[i, j, k]
+        #             k2_p = self.k2 * (self.l_t / self.tau_t) / self.c2[i, j, k]
+        #             k3_p = self.k3 * (self.l_t / self.tau_t) / self.c3[i, j, k]
+        #             modes1 = self.p1 * np.cos(
+        #                 (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+        #                  k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
+        #             ) + self.q1 * np.sin(
+        #                 (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+        #                  k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
+        #             )
+        #             modes2 = self.p2 * np.cos(
+        #                 (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+        #                  k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
+        #             ) + self.q2 * np.sin(
+        #                 (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+        #                  k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
+        #             )
+        #             modes3 = self.p3 * np.cos(
+        #                 (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+        #                  k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
+        #             ) + self.q3 * np.sin(
+        #                 (k1_p * self.block.mesh[0][i, j, k] + k2_p * self.block.mesh[1][i, j, k] +
+        #                  k3_p * self.block.mesh[2][i, j, k]) / self.l_t + self.omega * time / self.tau_t
+        #             )
+        #             v1[i, j, k] = np.sqrt(2 / self.mode_num) * modes1.sum()
+        #             v2[i, j, k] = np.sqrt(2 / self.mode_num) * modes2.sum()
+        #             v3[i, j, k] = np.sqrt(2 / self.mode_num) * modes3.sum()
+        # w1 = self.c1 * v1
+        # w2 = self.c2 * v2
+        # w3 = self.c3 * v3
+        # u1 = self.a11 * w1 + self.a12 * w2 + self.a13 * w3
+        # u2 = self.a21 * w1 + self.a22 * w2 + self.a23 * w3
+        # u3 = self.a31 * w1 + self.a32 * w2 + self.a33 * w3
         return u1, u2, u3
 
     @classmethod
