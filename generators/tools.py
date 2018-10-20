@@ -2,9 +2,7 @@ import numba as nb
 import numpy as np
 
 
-@nb.jit(
-    nopython=True
-)
+@nb.jit
 def smirnov_compute_velocity_field(
         k1: np.ndarray, k2: np.ndarray, k3: np.ndarray, p1: np.ndarray, p2: np.ndarray, p3: np.ndarray,
         q1: np.ndarray, q2: np.ndarray, q3: np.ndarray,

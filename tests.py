@@ -67,7 +67,7 @@ class SmirnovTest(unittest.TestCase):
     как и в статье, в которой изложен данный метод.
     """
     def setUp(self):
-        n = 80
+        n = 50
         size = 80
         mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
         # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])
@@ -80,7 +80,7 @@ class SmirnovTest(unittest.TestCase):
             block=self.block,
             u_av=(np.zeros(self.block.shape), np.zeros(self.block.shape), np.zeros(self.block.shape)),
             l_t=1,
-            tau_t=1,
+            tau_t=0.005,
             re_xx=np.full(self.block.shape, 1),
             re_yy=np.full(self.block.shape, 1),
             re_zz=np.full(self.block.shape, 1),
@@ -110,7 +110,7 @@ class SmirnovTest(unittest.TestCase):
 
     def test_plot_two_point_time_correlation(self):
         self.analyzer.plot_two_point_time_correlation(
-            i=0, j=0, k=0, t0=0, t1=0.1, t2=0.9, num_dt=100, num_av=1000
+            i=0, j=0, k=0, t0=0, t1=0.1, t2=1.1, num_dt=150, num_av=1000
         )
 
     def test_plot_spectrum_2d(self):

@@ -169,7 +169,7 @@ class Analyzer:
 
     def plot_two_point_time_correlation(self, i: int, j: int, k: int,
                                         t0: float, t1: float, t2: float, num_dt: int=50, num_av: int=100,
-                                        figsize=(7, 7)):
+                                        figsize=(6.5, 4.5)):
         # Осреднение будет происходить от момента t0 до момента t1 + dt_arr[i] для определения
         # i-ого значения коэффициента автокорреляции
         dt_arr = np.linspace(0, t2 - t1, num_dt)
@@ -199,10 +199,12 @@ class Analyzer:
         plt.plot(dt_arr, cor_vv, color='blue', lw=1.5, label=r'$R_{yy}^t$')
         plt.plot(dt_arr, cor_ww, color='green', lw=1.5, label=r'$R_{zz}^t$')
         plt.grid()
+        plt.xticks(fontsize=12, fontweight='bold')
+        plt.yticks(fontsize=12, fontweight='bold')
         plt.xlim(xmin=0, xmax=dt_arr.max())
         plt.ylim(ymin=-1.1, ymax=1.1)
-        plt.xlabel(r'$\Delta t,\ с$', fontsize=14)
-        plt.legend(fontsize=12)
+        plt.xlabel(r'$\Delta t,\ с$', fontsize=14, fontweight='bold')
+        plt.legend(fontsize=14)
         plt.show()
 
     @classmethod

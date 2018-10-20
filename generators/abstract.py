@@ -36,13 +36,12 @@ class Generator(metaclass=ABCMeta):
     Базовый класс, в котором должен быть определен метод для расчета поля мгновенной скорости в заданные
     моменты времени на 2-D или 3-D сетке.
     """
-    def __init__(self, block: Block, u_av: Tuple[np.ndarray, np.ndarray, np.ndarray], l_t: float,
+    def __init__(self, block: Block, u_av: Tuple[np.ndarray, np.ndarray, np.ndarray],
                  re_xx: np.ndarray, re_yy: np.ndarray, re_zz: np.ndarray,
                  re_xy: np.ndarray, re_xz: np.ndarray, re_yz: np.ndarray):
         """
        :param block: Блок сетки, на которой нужно генерировать пульсации.
         :param u_av: Кортеж из трех массивов составляющих осредненной скорости для каждого узла сетки.
-        :param l_t: Линейный масштаб турбулентности.
         :param re_xx: Осредненное произведение vx*vx.
         :param re_yy: Осредненное произведение vy*vy.
         :param re_zz: Осредненное произведение vz*vz.
@@ -52,7 +51,6 @@ class Generator(metaclass=ABCMeta):
         """
         self.block = block
         self.u_av = u_av
-        self.l_t = l_t
         self.re_xx = re_xx
         self.re_yy = re_yy
         self.re_zz = re_zz
