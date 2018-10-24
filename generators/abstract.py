@@ -68,7 +68,7 @@ class Generator(metaclass=ABCMeta):
         return E_arr
 
     @abstractmethod
-    def get_velocity_field(self, time) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_velocity_field(self, time, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Вчисление поля скорости на всей сетке в заданный момент времени."""
         pass
 

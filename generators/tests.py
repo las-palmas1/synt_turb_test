@@ -67,6 +67,6 @@ class TestSEM(unittest.TestCase):
             line.set_3d_properties(positions[frame][2])
 
         ani = anim.FuncAnimation(fig, func=update, frames=num_ts,
-                                 interval=20)
+                                 interval=40)
         plt.show()
 

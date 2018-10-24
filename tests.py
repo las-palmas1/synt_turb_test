@@ -1,6 +1,6 @@
 import unittest
 from analysis_tools import Analyzer
-from generators.storage import Lund, Smirnov
+from generators.storage import Lund, Smirnov, OriginalSEM
 from generators.abstract import Block, BCType
 import numpy as np
 
@@ -118,4 +118,40 @@ class SmirnovTest(unittest.TestCase):
 
     def test_plot_spectrum_3d(self):
         self.analyzer.plot_spectrum_3d(num_pnt=200)
+
+
+class OriginalSEMTest(unittest.TestCase):
+    def setUp(self):
+        n = 70
+        size = 6.28
+        # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
+        mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])
+        self.block = Block(
+            shape=(n, n, 2),
+            mesh=(mesh[1], mesh[0], mesh[2]),
+            bc=[(BCType.NotWall, BCType.NotWall), (BCType.NotWall, BCType.NotWall), (BCType.NotWall, BCType.NotWall)]
+        )
+        self.generator = OriginalSEM(
+            block=self.block,
+            u_av=(np.full(self.block.shape, 10), np.zeros(self.block.shape), np.zeros(self.block.shape)),
+            re_xx=np.full(self.block.shape, 1),
+            re_yy=np.full(self.block.shape, 1),
+            re_zz=np.full(self.block.shape, 1),
+            re_xy=np.full(self.block.shape, 0),
+            re_xz=np.full(self.block.shape, 0),
+            re_yz=np.full(self.block.shape, 0),
+            sigma=0.5,
+            eddy_num=1000
+        )
+        self.analyzer = Analyzer(self.generator)
+
+    def test_plot_2d_velocity_field(self):
+        self.analyzer.plot_2d_velocity_field(figsize=(7, 7), num_levels=20, vmin=-4, vmax=4, grid=False, num_ts=1)
+
+    def test_plot_velocity_history(self):
+        self.analyzer.plot_velocity_history(10, 10, 0, 0.01, 1000)
+
+    def test_plot_moments(self):
+        self.analyzer.plot_moments(20, 20, 0, 0.005, 9000)
+
 

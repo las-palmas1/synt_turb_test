@@ -8,10 +8,10 @@ class Analyzer:
     def __init__(self, generator: Generator):
         self.generator = generator
 
-    def plot_2d_velocity_field(self, figsize=(7, 7), num_levels=20, vmin=-3.5, vmax=3.5, grid=True):
+    def plot_2d_velocity_field(self, figsize=(7, 7), num_levels=20, vmin=-3.5, vmax=3.5, grid=True, **kwargs):
         x = self.generator.block.mesh[0][:, :, 0]
         y = self.generator.block.mesh[1][:, :, 0]
-        u3d, v3d, w3d = self.generator.get_velocity_field(0)
+        u3d, v3d, w3d = self.generator.get_velocity_field(0, **kwargs)
         u = u3d[:, :, 0]
         v = v3d[:, :, 0]
         w = w3d[:, :, 0]
@@ -105,10 +105,10 @@ class Analyzer:
         plt.grid()
         plt.show()
 
-    def plot_divergence_field_2d(self, figzie=(7, 7), num_levels=20, vmin=-300, vmax=300, grid=True):
+    def plot_divergence_field_2d(self, figzie=(7, 7), num_levels=20, vmin=-300, vmax=300, grid=True, **kwargs):
         x = self.generator.block.mesh[0][:, :, 0]
         y = self.generator.block.mesh[1][:, :, 0]
-        vel = self.generator.get_velocity_field(0)
+        vel = self.generator.get_velocity_field(0, **kwargs)
         div = self.generator.get_divergence(vel, self.generator.block.mesh, self.generator.block.shape)
         div_2d = div[:, :, 0]
 

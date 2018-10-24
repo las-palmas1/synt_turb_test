@@ -34,7 +34,7 @@ class Lund(Generator):
         w = self.a31[i, j, k] * u_prime + self.a32[i, j, k] * v_prime + self.a33[i, j, k] * w_prime
         return u, v, w
 
-    def get_velocity_field(self, time) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_velocity_field(self, time, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         u_prime = np.random.normal(0, 1, self.block.shape)
         v_prime = np.random.normal(0, 1, self.block.shape)
         w_prime = np.random.normal(0, 1, self.block.shape)
@@ -159,7 +159,7 @@ class Smirnov(Generator):
         u3 = self.a31[i, j, k] * w1 + self.a32[i, j, k] * w2 + self.a33[i, j, k] * w3
         return u1, u2, u3
 
-    def get_velocity_field(self, time) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_velocity_field(self, time, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         vel = smirnov_compute_velocity_field(
             self.k1, self.k2, self.k3, self.p1, self.p2, self.p3,
             self.q1, self.q2, self.q3, self.omega, self.c1, self.c2, self.c3,
@@ -179,12 +179,13 @@ class Smirnov(Generator):
 
 class OriginalSEM(Generator):
     def __init__(
-            self, block: Block, u_av: Tuple[np.ndarray, np.ndarray, np.ndarray], sigma: float,
+            self, block: Block, u_av: Tuple[np.ndarray, np.ndarray, np.ndarray], sigma: float, eddy_num: int,
             re_xx: np.ndarray, re_yy: np.ndarray, re_zz: np.ndarray,
             re_xy: np.ndarray, re_xz: np.ndarray, re_yz: np.ndarray
     ):
         Generator.__init__(self, block, u_av, re_xx, re_yy, re_zz, re_xy, re_xz, re_yz)
         self.sigma = sigma
+        self.eddy_num = eddy_num
         self._compute_aux_data()
 
     def _compute_cholesky(self):
@@ -210,13 +211,12 @@ class OriginalSEM(Generator):
         self.z_min = self.block.mesh[2].min() - self.sigma
         self.z_max = self.block.mesh[2].max() + self.sigma
         self.volume = (self.x_max - self.x_min) * (self.y_max - self.y_min) * (self.z_max - self.z_min)
-        self.eddy_num = int(self.volume / self.sigma**3)
+        # self.eddy_num = int(self.volume / self.sigma**3)
         self.x_e_init = np.random.uniform(self.x_min, self.x_max, self.eddy_num)
         self.y_e_init = np.random.uniform(self.y_min, self.y_max, self.eddy_num)
         self.z_e_init = np.random.uniform(self.z_min, self.z_max, self.eddy_num)
-        self.epsilon = np.random.uniform(-1, 1, self.eddy_num)
-        for i in range(self.eddy_num):
-            pass
+        # self.epsilon = np.random.uniform(-1, 1, (self.eddy_num, 3))
+        self.epsilon = np.random.normal(0, 1, (self.eddy_num, 3))
 
     @classmethod
     def _get_line_plane_intersection(cls, x0, y0, z0, xv, yv, zv, a, b, c, d):
@@ -284,7 +284,7 @@ class OriginalSEM(Generator):
         x_e = self.x_e_init
         y_e = self.y_e_init
         z_e = self.z_e_init
-        for i in range(num_ts):
+        for _ in range(num_ts):
             for i in range(self.eddy_num):
                 if (
                         x_e[i] < self.x_min or x_e[i] > self.x_max or
@@ -301,13 +301,57 @@ class OriginalSEM(Generator):
             yield x_e, y_e, z_e
 
     def _compute_aux_data(self):
-        pass
+        self._compute_cholesky()
+        self._compute_init_eddies_pos()
+
+    @classmethod
+    def form_func(cls, x):
+        return (np.abs(x) < 1) * (np.sqrt(1.5) * (1 - np.abs(x)))
 
     def get_pulsation_at_node(self, i: int, j: int, k: int, time: np.ndarray):
-        pass
+        positions = list(self.get_eddies_pos(time.max(), time.shape[0]))
+        u = np.zeros(time.shape)
+        v = np.zeros(time.shape)
+        w = np.zeros(time.shape)
+        for n, position in enumerate(positions):
+            x_e = np.array(position[0])
+            y_e = np.array(position[1])
+            z_e = np.array(position[2])
+            f_sigma = self.volume**0.5 / self.sigma**1.5 * (
+                self.form_func((self.block.mesh[0][i, j, k] - x_e) / self.sigma) *
+                self.form_func((self.block.mesh[1][i, j, k] - y_e) / self.sigma) *
+                self.form_func((self.block.mesh[2][i, j, k] - z_e) / self.sigma)
+            )
+            u1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 0]).sum()
+            v1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 1]).sum()
+            w1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 2]).sum()
+            u[n] = self.a11[i, j, k] * u1 + self.a12[i, j, k] * v1 + self.a13[i, j, k] * w1
+            v[n] = self.a21[i, j, k] * u1 + self.a22[i, j, k] * v1 + self.a23[i, j, k] * w1
+            w[n] = self.a31[i, j, k] * u1 + self.a32[i, j, k] * v1 + self.a33[i, j, k] * w1
+        return u, v, w
 
-    def get_velocity_field(self, time):
-        pass
+    def get_velocity_field(self, time, **kwargs):
+        num_ts = kwargs['num_ts']
+        x_e, y_e, z_e = list(self.get_eddies_pos(time, num_ts))[num_ts - 1]
+        u = np.zeros(self.block.shape)
+        v = np.zeros(self.block.shape)
+        w = np.zeros(self.block.shape)
+        for i in range(self.block.shape[0]):
+            for j in range(self.block.shape[1]):
+                for k in range(self.block.shape[2]):
+                    f_sigma = np.sqrt(self.volume) / self.sigma ** 1.5 * (
+                            self.form_func((self.block.mesh[0][i, j, k] - x_e) / self.sigma) *
+                            self.form_func((self.block.mesh[1][i, j, k] - y_e) / self.sigma) *
+                            self.form_func((self.block.mesh[2][i, j, k] - z_e) / self.sigma)
+                    )
+                    u1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 0]).sum()
+                    v1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 1]).sum()
+                    w1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 2]).sum()
+                    u[i, j, k] = self.a11[i, j, k] * u1 + self.a12[i, j, k] * v1 + self.a13[i, j, k] * w1
+                    v[i, j, k] = self.a21[i, j, k] * u1 + self.a22[i, j, k] * v1 + self.a23[i, j, k] * w1
+                    w[i, j, k] = self.a31[i, j, k] * u1 + self.a32[i, j, k] * v1 + self.a33[i, j, k] * w1
+        return u, v, w
+
 
 
 
