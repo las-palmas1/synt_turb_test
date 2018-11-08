@@ -6,12 +6,14 @@ from generators.tools import smirnov_compute_velocity_field
 
 
 class Lund(Generator):
-    def __init__(self, block: Block, u_av: Tuple[np.ndarray, np.ndarray, np.ndarray], l_t: float,
-                 re_xx: np.ndarray, re_yy: np.ndarray, re_zz: np.ndarray,
-                 re_xy: np.ndarray, re_xz: np.ndarray, re_yz: np.ndarray):
-        Generator.__init__(self, block, u_av, re_xx, re_yy, re_zz, re_xy, re_xz, re_yz)
+    def __init__(
+            self, block: Block, u_av: Tuple[np.ndarray, np.ndarray, np.ndarray], l_t: float,
+            re_xx: np.ndarray, re_yy: np.ndarray, re_zz: np.ndarray,
+            re_xy: np.ndarray, re_xz: np.ndarray, re_yz: np.ndarray,
+            time_arr: np.ndarray
+    ):
+        Generator.__init__(self, block, u_av, re_xx, re_yy, re_zz, re_xy, re_xz, re_yz, time_arr)
         self.l_t = l_t
-        self._compute_aux_data()
 
     def _compute_cholesky(self):
         """Вычисление разложения тензора рейнольдсовых напряжений по Холецкому в каждой точке."""
@@ -25,26 +27,45 @@ class Lund(Generator):
         self.a32 = (self.re_yz - self.a21 * self.a31) / self.a22
         self.a33 = np.sqrt(self.re_zz - self.a31**2 - self.a32**2)
 
-    def get_pulsation_at_node(self, i: int, j: int, k: int, time: np.ndarray) -> Tuple[float, float, float]:
-        u_prime = np.random.normal(0, 1, time.shape)
-        v_prime = np.random.normal(0, 1, time.shape)
-        w_prime = np.random.normal(0, 1, time.shape)
+    def get_pulsation_at_node(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return self._vel_puls
+
+    def get_velocity_field(self, time_step, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        return self._vel_field[time_step]
+
+    def compute_velocity_field(self):
+        for time in self.time_arr_field:
+            u_prime = np.random.normal(0, 1, self.block.shape)
+            v_prime = np.random.normal(0, 1, self.block.shape)
+            w_prime = np.random.normal(0, 1, self.block.shape)
+            u = self.a11 * u_prime + self.a12 * v_prime + self.a13 * w_prime
+            v = self.a21 * u_prime + self.a22 * v_prime + self.a23 * w_prime
+            w = self.a31 * u_prime + self.a32 * v_prime + self.a33 * w_prime
+            self._vel_field.append((u, v, w))
+
+    def compute_pulsation_at_node(self):
+        i = self._i_puls
+        j = self._j_puls
+        k = self._k_puls
+        u_prime = np.random.normal(0, 1, self.time_arr_puls.shape)
+        v_prime = np.random.normal(0, 1, self.time_arr_puls.shape)
+        w_prime = np.random.normal(0, 1, self.time_arr_puls.shape)
         u = self.a11[i, j, k] * u_prime + self.a12[i, j, k] * v_prime + self.a13[i, j, k] * w_prime
         v = self.a21[i, j, k] * u_prime + self.a22[i, j, k] * v_prime + self.a23[i, j, k] * w_prime
         w = self.a31[i, j, k] * u_prime + self.a32[i, j, k] * v_prime + self.a33[i, j, k] * w_prime
-        return u, v, w
+        self._vel_puls = (u, v, w)
 
-    def get_velocity_field(self, time, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        u_prime = np.random.normal(0, 1, self.block.shape)
-        v_prime = np.random.normal(0, 1, self.block.shape)
-        w_prime = np.random.normal(0, 1, self.block.shape)
-        u = self.a11 * u_prime + self.a12 * v_prime + self.a13 * w_prime
-        v = self.a21 * u_prime + self.a22 * v_prime + self.a23 * w_prime
-        w = self.a31 * u_prime + self.a32 * v_prime + self.a33 * w_prime
-        return u, v, w
-
-    def _compute_aux_data(self):
+    def _compute_aux_data_space(self):
         self._compute_cholesky()
+
+    def _compute_aux_data_common(self):
+        pass
+
+    def compute_aux_data_time_puls(self):
+        pass
+
+    def compute_aux_data_time_field(self):
+        pass
 
 
 class Smirnov(Generator):
@@ -159,13 +180,13 @@ class Smirnov(Generator):
         u3 = self.a31[i, j, k] * w1 + self.a32[i, j, k] * w2 + self.a33[i, j, k] * w3
         return u1, u2, u3
 
-    def get_velocity_field(self, time, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_velocity_field(self, time_step, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         vel = smirnov_compute_velocity_field(
             self.k1, self.k2, self.k3, self.p1, self.p2, self.p3,
             self.q1, self.q2, self.q3, self.omega, self.c1, self.c2, self.c3,
             self.a11, self.a12, self.a13, self.a21, self.a22, self.a23, self.a31, self.a32, self.a33,
             self.block.mesh[0], self.block.mesh[1], self.block.mesh[2], self.l_t, self.tau_t, self.mode_num,
-            time
+            time_step
         )
         u1 = vel[0]
         u2 = vel[1]
@@ -215,8 +236,8 @@ class OriginalSEM(Generator):
         self.x_e_init = np.random.uniform(self.x_min, self.x_max, self.eddy_num)
         self.y_e_init = np.random.uniform(self.y_min, self.y_max, self.eddy_num)
         self.z_e_init = np.random.uniform(self.z_min, self.z_max, self.eddy_num)
-        # self.epsilon = np.random.uniform(-1, 1, (self.eddy_num, 3))
-        self.epsilon = np.random.normal(0, 1, (self.eddy_num, 3))
+        self.epsilon_init = np.random.normal(0, 1, (self.eddy_num, 3))
+        # self.epsilon_init = np.random.uniform(-1, 1, (self.eddy_num, 3))
 
     @classmethod
     def _get_line_plane_intersection(cls, x0, y0, z0, xv, yv, zv, a, b, c, d):
@@ -275,7 +296,10 @@ class OriginalSEM(Generator):
                             in_planes.append(bound)
         return in_planes
 
-    def get_eddies_pos(self, time, num_ts: int = 100):
+    def get_eddies_params(self, time, num_ts: int = 100):
+        """
+        Возвращает набор значений координат позиций вихрей и их интенсивностей в различные моменты времени.
+        """
         dt = time / (num_ts + 1)
         in_planes = self.get_in_planes(
             self.x_min, self.x_max, self.y_min, self.y_max, self.z_min, self.z_max,
@@ -284,6 +308,7 @@ class OriginalSEM(Generator):
         x_e = self.x_e_init
         y_e = self.y_e_init
         z_e = self.z_e_init
+        epsilon = self.epsilon_init
         for _ in range(num_ts):
             for i in range(self.eddy_num):
                 if (
@@ -294,11 +319,13 @@ class OriginalSEM(Generator):
                     x_e[i] = np.random.uniform(in_planes[i][0][0], in_planes[i][0][1])
                     y_e[i] = np.random.uniform(in_planes[i][1][0], in_planes[i][1][1])
                     z_e[i] = np.random.uniform(in_planes[i][2][0], in_planes[i][2][1])
+                    epsilon[i] = np.random.normal(0, 1, 3)
+                    # epsilon[i] = np.random.uniform(-1, 1, 3)
 
             x_e = x_e + dt * self.u0
             y_e = y_e + dt * self.v0
             z_e = z_e + dt * self.w0
-            yield x_e, y_e, z_e
+            yield x_e, y_e, z_e, epsilon
 
     def _compute_aux_data(self):
         self._compute_cholesky()
@@ -309,7 +336,7 @@ class OriginalSEM(Generator):
         return (np.abs(x) < 1) * (np.sqrt(1.5) * (1 - np.abs(x)))
 
     def get_pulsation_at_node(self, i: int, j: int, k: int, time: np.ndarray):
-        positions = list(self.get_eddies_pos(time.max(), time.shape[0]))
+        positions = list(self.get_eddies_params(time.max(), time.shape[0]))
         u = np.zeros(time.shape)
         v = np.zeros(time.shape)
         w = np.zeros(time.shape)
@@ -317,22 +344,23 @@ class OriginalSEM(Generator):
             x_e = np.array(position[0])
             y_e = np.array(position[1])
             z_e = np.array(position[2])
+            epsilon = np.array(position[3])
             f_sigma = self.volume**0.5 / self.sigma**1.5 * (
                 self.form_func((self.block.mesh[0][i, j, k] - x_e) / self.sigma) *
                 self.form_func((self.block.mesh[1][i, j, k] - y_e) / self.sigma) *
                 self.form_func((self.block.mesh[2][i, j, k] - z_e) / self.sigma)
             )
-            u1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 0]).sum()
-            v1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 1]).sum()
-            w1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 2]).sum()
+            u1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * epsilon[:, 0]).sum()
+            v1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * epsilon[:, 1]).sum()
+            w1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * epsilon[:, 2]).sum()
             u[n] = self.a11[i, j, k] * u1 + self.a12[i, j, k] * v1 + self.a13[i, j, k] * w1
             v[n] = self.a21[i, j, k] * u1 + self.a22[i, j, k] * v1 + self.a23[i, j, k] * w1
             w[n] = self.a31[i, j, k] * u1 + self.a32[i, j, k] * v1 + self.a33[i, j, k] * w1
         return u, v, w
 
-    def get_velocity_field(self, time, **kwargs):
+    def get_velocity_field(self, time_step, **kwargs):
         num_ts = kwargs['num_ts']
-        x_e, y_e, z_e = list(self.get_eddies_pos(time, num_ts))[num_ts - 1]
+        x_e, y_e, z_e, epsilon = list(self.get_eddies_params(time_step, num_ts))[num_ts - 1]
         u = np.zeros(self.block.shape)
         v = np.zeros(self.block.shape)
         w = np.zeros(self.block.shape)
@@ -344,9 +372,9 @@ class OriginalSEM(Generator):
                             self.form_func((self.block.mesh[1][i, j, k] - y_e) / self.sigma) *
                             self.form_func((self.block.mesh[2][i, j, k] - z_e) / self.sigma)
                     )
-                    u1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 0]).sum()
-                    v1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 1]).sum()
-                    w1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * self.epsilon[:, 2]).sum()
+                    u1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * epsilon[:, 0]).sum()
+                    v1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * epsilon[:, 1]).sum()
+                    w1 = 1 / (np.sqrt(self.eddy_num)) * (f_sigma * epsilon[:, 2]).sum()
                     u[i, j, k] = self.a11[i, j, k] * u1 + self.a12[i, j, k] * v1 + self.a13[i, j, k] * w1
                     v[i, j, k] = self.a21[i, j, k] * u1 + self.a22[i, j, k] * v1 + self.a23[i, j, k] * w1
                     w[i, j, k] = self.a31[i, j, k] * u1 + self.a32[i, j, k] * v1 + self.a33[i, j, k] * w1

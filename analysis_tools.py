@@ -7,6 +7,8 @@ import numpy as np
 class Analyzer:
     def __init__(self, generator: Generator):
         self.generator = generator
+        self.generator.compute_aux_data_time_field()
+        self.generator.compute_velocity_field()
 
     def plot_2d_velocity_field(self, figsize=(7, 7), num_levels=20, vmin=-3.5, vmax=3.5, grid=True, **kwargs):
         x = self.generator.block.mesh[0][:, :, 0]
@@ -48,7 +50,11 @@ class Analyzer:
 
     def plot_velocity_history(self, i: int, j: int, k: int, ts, num_ts: int, figsize=(7, 7)):
         t_arr = np.arange(0, ts*num_ts, ts)
-        u, v, w = self.generator.get_pulsation_at_node(i, j, k, t_arr)
+        self.generator.set_puls_node(i, j, k)
+        self.generator.time_arr_puls = t_arr
+        self.generator.compute_aux_data_time_puls()
+        self.generator.compute_pulsation_at_node()
+        u, v, w = self.generator.get_pulsation_at_node()
         plt.figure(figsize=figsize)
         plt.plot(t_arr, u, color='red', lw=1)
         plt.grid()
@@ -85,7 +91,11 @@ class Analyzer:
 
     def plot_moments(self, i: int, j: int, k: int, ts: float, num_ts: int, figsize=(7, 7)):
         t_arr = np.arange(0, ts * num_ts, ts)
-        u, v, w = self.generator.get_pulsation_at_node(i, j, k, t_arr)
+        self.generator.set_puls_node(i, j, k)
+        self.generator.time_arr_puls = t_arr
+        self.generator.compute_aux_data_time_puls()
+        self.generator.compute_pulsation_at_node()
+        u, v, w = self.generator.get_pulsation_at_node()
         uu_av = self._get_average_arr(u * u)
         vv_av = self._get_average_arr(v * v)
         ww_av = self._get_average_arr(w * w)
@@ -133,7 +143,11 @@ class Analyzer:
         cor_uu = np.zeros(num)
         cor_vv = np.zeros(num)
         cor_ww = np.zeros(num)
-        u0, v0, w0 = self.generator.get_pulsation_at_node(i0, j0, k0, t_arr)
+        self.generator.set_puls_node(i0, j0, k0)
+        self.generator.time_arr_puls = t_arr
+        self.generator.compute_aux_data_time_puls()
+        self.generator.compute_pulsation_at_node()
+        u0, v0, w0 = self.generator.get_pulsation_at_node()
         u0u0_av = self._get_average(u0 * u0)
         v0v0_av = self._get_average(v0 * v0)
         w0w0_av = self._get_average(w0 * w0)
@@ -142,7 +156,9 @@ class Analyzer:
             i = i0 + di * n
             j = j0 + dj * n
             k = k0 + dk * n
-            u, v, w = self.generator.get_pulsation_at_node(i, j, k, t_arr)
+            self.generator.set_puls_node(i, j, k)
+            self.generator.compute_pulsation_at_node()
+            u, v, w = self.generator.get_pulsation_at_node()
             r[n] = np.sqrt((self.generator.block.mesh[0][i, j, k] - self.generator.block.mesh[0][i0, j0, k0])**2 +
                            (self.generator.block.mesh[1][i, j, k] - self.generator.block.mesh[1][i0, j0, k0])**2 +
                            (self.generator.block.mesh[2][i, j, k] - self.generator.block.mesh[2][i0, j0, k0])**2)
@@ -161,35 +177,50 @@ class Analyzer:
         plt.plot(r, cor_vv, color='blue', lw=1.5, label=r'$R_{yy}^r$')
         plt.plot(r, cor_ww, color='green', lw=1.5, label=r'$R_{zz}^r$')
         plt.grid()
-        plt.xlim(xmin=0, xmax=ts*num_ts)
+        plt.xlim(xmin=0, xmax=r.max())
         plt.ylim(ymin=-1.1, ymax=1.1)
         plt.xlabel(r'$r,\ м$', fontsize=14)
         plt.legend(fontsize=12)
         plt.show()
 
-    def plot_two_point_time_correlation(self, i: int, j: int, k: int,
-                                        t0: float, t1: float, t2: float, num_dt: int=50, num_av: int=100,
-                                        figsize=(6.5, 4.5)):
-        # Осреднение будет происходить от момента t0 до момента t1 + dt_arr[i] для определения
-        # i-ого значения коэффициента автокорреляции
-        dt_arr = np.linspace(0, t2 - t1, num_dt)
-        cor_uu = np.zeros(num_dt)
-        cor_vv = np.zeros(num_dt)
-        cor_ww = np.zeros(num_dt)
-        t0_arr = np.linspace(t0, t1, num_av)
-        u0, v0, w0 = self.generator.get_pulsation_at_node(i, j, k, t0_arr)
-        u0u0_av = self._get_average(u0 * u0)
-        v0v0_av = self._get_average(v0 * v0)
-        w0w0_av = self._get_average(w0 * w0)
-        for n in range(1, num_dt):
-            t_arr = np.linspace(t0, t1 + dt_arr[n], num_av)
-            u, v, w = self.generator.get_pulsation_at_node(i, j, k, t_arr)
-            uu_av = self._get_average(u * u)
-            vv_av = self._get_average(v * v)
-            ww_av = self._get_average(w * w)
-            u0u_av = self._get_average(u0 * u)
-            v0v_av = self._get_average(v0 * v)
-            w0w_av = self._get_average(w0 * w)
+    def plot_two_point_time_correlation(
+            self, i: int, j: int, k: int, t1: float, t0: float=0.,
+            num_dt_av: int=200, num_dt: int=100, figsize=(6.5, 4.5)
+    ):
+        """
+        :param num_dt - число отрезков между моментами t1 и t2.
+        :param num_dt_av - число отрезков между моментами t0 и t1 и оно же - число отрезков ни интервале осреднения.
+
+        1. Момент t2 определяется как t1 + num_dt * (t1 - t0) / num_dt_av.
+        2. Момент t3 определяется как t2 + (t1 - t0).
+        3. Интервал [t2, t3] при этом разбивается на num_dt_av отрезков.
+        4. Пульсации считаются во всех точках между моментами t0 и t3.
+        5. Интервал осреднения T = t1 - t0, шаг dt = (t1 - t0) / num_dt_av.
+        6. Осреднение проводится от момента t1 - T + i * num_dt_av до момента
+            t1 + T + i * num_dt_av, где i = 0, 1, ... num_dt1.
+        """
+        t2 = t1 + num_dt * (t1 - t0) / num_dt_av
+        t3 = t2 + t1 - t0
+        t_arr = np.linspace(t0, t3, num_dt_av * 2 + num_dt + 1)
+        dt_arr = np.linspace(t1, t2, num_dt + 1) - t1
+        cor_uu = np.zeros(num_dt + 1)
+        cor_vv = np.zeros(num_dt + 1)
+        cor_ww = np.zeros(num_dt + 1)
+        self.generator.set_puls_node(i, j, k)
+        self.generator.time_arr_puls = t_arr
+        self.generator.compute_aux_data_time_puls()
+        self.generator.compute_pulsation_at_node()
+        u, v, w = self.generator.get_pulsation_at_node()
+        u0u0_av = self._get_average(u[0: 2 * num_dt_av + 1] * u[0: 2 * num_dt_av + 1])
+        v0v0_av = self._get_average(v[0: 2 * num_dt_av + 1] * v[0: 2 * num_dt_av + 1])
+        w0w0_av = self._get_average(w[0: 2 * num_dt_av + 1] * w[0: 2 * num_dt_av + 1])
+        for n in range(num_dt + 1):
+            uu_av = self._get_average(u[n: 2 * num_dt_av + n + 1] * u[n: 2 * num_dt_av + n + 1])
+            vv_av = self._get_average(v[n: 2 * num_dt_av + n + 1] * v[n: 2 * num_dt_av + n + 1])
+            ww_av = self._get_average(w[n: 2 * num_dt_av + n + 1] * w[n: 2 * num_dt_av + n + 1])
+            u0u_av = self._get_average(u[0: 2 * num_dt_av + 1] * u[n: 2 * num_dt_av + n + 1])
+            v0v_av = self._get_average(v[0: 2 * num_dt_av + 1] * v[n: 2 * num_dt_av + n + 1])
+            w0w_av = self._get_average(w[0: 2 * num_dt_av + 1] * w[n: 2 * num_dt_av + n + 1])
             cor_uu[n] = u0u_av / (np.sqrt(u0u0_av) * np.sqrt(uu_av))
             cor_vv[n] = v0v_av / (np.sqrt(v0v0_av) * np.sqrt(vv_av))
             cor_ww[n] = w0w_av / (np.sqrt(w0w0_av) * np.sqrt(ww_av))

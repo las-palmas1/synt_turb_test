@@ -25,6 +25,7 @@ class LundTest(unittest.TestCase):
             re_xy=np.full(self.block.shape, 0),
             re_xz=np.full(self.block.shape, 0),
             re_yz=np.full(self.block.shape, 0),
+            time_arr=np.array([0])
         )
         self.analyzer = Analyzer(self.generator)
 
@@ -47,7 +48,7 @@ class LundTest(unittest.TestCase):
 
     def test_plot_two_point_time_correlation(self):
         self.analyzer.plot_two_point_time_correlation(
-            i=0, j=0, k=0, t0=0, t1=1.0, t2=2, num_dt=40, num_av=500
+            i=0, j=0, k=0, t0=0, t1=1.0, num_dt_av=500, num_dt=500
         )
 
     def test_plot_spectrum_2d(self):
@@ -67,12 +68,12 @@ class SmirnovTest(unittest.TestCase):
     как и в статье, в которой изложен данный метод.
     """
     def setUp(self):
-        n = 50
+        n = 70
         size = 80
-        mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
-        # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])
+        # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
+        mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])
         self.block = Block(
-            shape=(n, n, n),
+            shape=(n, n, 2),
             mesh=(mesh[1], mesh[0], mesh[2]),
             bc=[(BCType.NotWall, BCType.NotWall), (BCType.NotWall, BCType.NotWall), (BCType.NotWall, BCType.NotWall)]
         )
@@ -80,7 +81,7 @@ class SmirnovTest(unittest.TestCase):
             block=self.block,
             u_av=(np.zeros(self.block.shape), np.zeros(self.block.shape), np.zeros(self.block.shape)),
             l_t=1,
-            tau_t=0.005,
+            tau_t=1,
             re_xx=np.full(self.block.shape, 1),
             re_yy=np.full(self.block.shape, 1),
             re_zz=np.full(self.block.shape, 1),
@@ -110,7 +111,7 @@ class SmirnovTest(unittest.TestCase):
 
     def test_plot_two_point_time_correlation(self):
         self.analyzer.plot_two_point_time_correlation(
-            i=0, j=0, k=0, t0=0, t1=0.1, t2=1.1, num_dt=150, num_av=1000
+            i=0, j=0, k=0, t0=0, t1=0.1, t2=1.1, num_dt_av=150, num_dt=1000
         )
 
     def test_plot_spectrum_2d(self):
@@ -153,5 +154,23 @@ class OriginalSEMTest(unittest.TestCase):
 
     def test_plot_moments(self):
         self.analyzer.plot_moments(20, 20, 0, 0.005, 9000)
+
+    def test_plot_divergence_field_2d(self):
+        self.analyzer.plot_divergence_field_2d(vmin=-15, vmax=15, grid=False, num_levels=20, num_ts=1)
+
+    def test_plot_two_point_space_correlation(self):
+        # TODO: для каждой новой точки вычисляются заново позиции вихрей, нужно устранить
+        # вспомогательные данные следует разделить на несколько частей:
+        # 1. Данные, общие для всех узлов во все моменты времени
+        # 2. Данные, общие для всех узлов, но зависимые от времени (есть в SEM)
+        # 3. Данные, зависимые от координаты (разные для узлов) но постоянные во времени
+        # В соответсвии с этими пунктами нужно переделать также и тесты.
+        self.analyzer.plot_two_point_space_correlation(
+            i0=0, j0=0, k0=0, ts=0.005, num_ts=2000, di=1, dj=1, dk=0, num=59
+        )
+
+    def test_plot_two_point_time_correlation(self):
+        self.analyzer.plot_two_point_time_correlation(
+            i=0, j=0, k=0, t0=0, t1=0.1, t2=1.1, num_dt_av=150, num_dt=1000)
 
 
