@@ -119,7 +119,7 @@ class SmirnovTest(unittest.TestCase):
         self.analyzer.plot_spectrum_2d(num_pnt=200)
 
     def test_plot_spectrum_3d(self):
-        self.analyzer.plot_spectrum_3d(num_pnt=200)
+        self.analyzer.plot_spectrum_3d(num_pnt=200)#
 
 
 class DavidsonTest(unittest.TestCase):
