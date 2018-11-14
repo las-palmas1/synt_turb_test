@@ -17,15 +17,16 @@ class TestSEM(unittest.TestCase):
         )
         self.sem = OriginalSEM(
             block=self.block,
-            u_av=(np.full(self.block.shape, 0.5), np.full(self.block.shape, 0.5), np.full(self.block.shape, 0.5)),
+            u_av=(0.5, 0.5, 0.5),
             sigma=0.3,
-            re_xx=np.full(self.block.shape, 1),
-            re_yy=np.full(self.block.shape, 1),
-            re_zz=np.full(self.block.shape, 1),
-            re_xy=np.full(self.block.shape, 0),
-            re_xz=np.full(self.block.shape, 0),
-            re_yz=np.full(self.block.shape, 0),
-            eddy_num=500
+            re_xx=1.,
+            re_yy=1.,
+            re_zz=1.,
+            re_xy=0.,
+            re_xz=0.,
+            re_yz=0.,
+            eddy_num=500,
+            time_arr=np.array([0])
         )
         self.sem._compute_init_eddies_pos()
 
@@ -35,7 +36,7 @@ class TestSEM(unittest.TestCase):
         ax = ax3.Axes3D(fig)
 
         num_ts = 100
-        eddy_params = list(self.sem.get_eddies_params(4, num_ts))
+        eddy_params = self.sem.get_eddies_params(4, num_ts)
         ax.plot(xs=[self.sem.x_min, self.sem.x_min], ys=[self.sem.y_min, self.sem.y_min],
                 zs=[self.sem.z_min, self.sem.z_max], c='red', lw=2)
         ax.plot(xs=[self.sem.x_min, self.sem.x_min], ys=[self.sem.y_min, self.sem.y_max],
@@ -61,11 +62,11 @@ class TestSEM(unittest.TestCase):
                 zs=[self.sem.z_max, self.sem.z_max], c='red', lw=2)
         ax.plot(xs=[self.sem.x_min, self.sem.x_max], ys=[self.sem.y_max, self.sem.y_max],
                 zs=[self.sem.z_max, self.sem.z_max], c='red', lw=2)
-        line = ax.plot(eddy_params[0][0], eddy_params[0][1], eddy_params[0][2], ls='', marker='o')[0]
+        line = ax.plot(eddy_params[0, 0, :], eddy_params[0, 1, :], eddy_params[0, 2, :], ls='', marker='o')[0]
 
         def update(frame):
-            line.set_data([eddy_params[frame][0], eddy_params[frame][1]])
-            line.set_3d_properties(eddy_params[frame][2])
+            line.set_data([eddy_params[frame, 0, :], eddy_params[frame, 1, :]])
+            line.set_3d_properties(eddy_params[frame, 2, :])
 
         ani = anim.FuncAnimation(fig, func=update, frames=num_ts,
                                  interval=40)

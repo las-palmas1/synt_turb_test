@@ -33,18 +33,21 @@ class Block:
 
 class Generator(metaclass=ABCMeta):
     """
-    Базовый класс, в котором должен быть определен метод для расчета поля мгновенной скорости в заданные
-    моменты времени на 2-D или 3-D сетке.
+    Базовый класс, в котором должен быть определен метод для расчета поля однородной анизотропной турбулентности
+    в заданные моменты времени на 2-D или 3-D сетке. Однородность означает, что параметры турбулентности будут
+    постоянны во всех точках области (масштабы, тензор напряжений Рейнольдса и др.),
+    а анизотропия будет означать, что матрица тензора напряжений Рейнольдса может быть не только
+    пропорцианальной единичной.
     """
     def __init__(
-            self, block: Block, u_av: Tuple[np.ndarray, np.ndarray, np.ndarray],
-            re_xx: np.ndarray, re_yy: np.ndarray, re_zz: np.ndarray,
-            re_xy: np.ndarray, re_xz: np.ndarray, re_yz: np.ndarray,
+            self, block: Block, u_av: Tuple[float, float, float],
+            re_xx: float, re_yy: float, re_zz: float,
+            re_xy: float, re_xz: float, re_yz: float,
             time_arr: np.ndarray,
             ):
         """
         :param block: Блок сетки, на которой нужно генерировать пульсации.
-        :param u_av: Кортеж из трех массивов составляющих осредненной скорости для каждого узла сетки.
+        :param u_av: Кортеж из трех значений составляющих осредненной скорости.
         :param re_xx: Осредненное произведение vx*vx.
         :param re_yy: Осредненное произведение vy*vy.
         :param re_zz: Осредненное произведение vz*vz.
@@ -73,8 +76,7 @@ class Generator(metaclass=ABCMeta):
         self._compute_aux_data_common()
         self._compute_aux_data_space()
 
-    @classmethod
-    def _get_energy_desired(cls, k) -> float:
+    def _get_energy_desired(self, k) -> float:
         """Для спектральных методов следует переопределить. По умолчанию возвращает ноль."""
         return 0.
 
@@ -136,15 +138,13 @@ class Generator(metaclass=ABCMeta):
         """
         pass
 
-    @abstractmethod
-    def get_velocity_field(self, time_step: int, **kwargs) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_velocity_field(self, time_step: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Возвращает поле скорости на всей сетке на заданном временном шаге."""
-        pass
+        return self._vel_field[time_step]
 
-    @abstractmethod
     def get_pulsation_at_node(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Возвращает значение пульсаций в узле в заданные моменты времени."""
-        pass
+        return self._vel_puls
 
     @abstractmethod
     def compute_velocity_field(self):
@@ -179,12 +179,3 @@ class Generator(metaclass=ABCMeta):
     @time_arr_puls.setter
     def time_arr_puls(self, value: np.ndarray):
         self._time_arr_puls = value
-
-    # TODO: надо создать отдельные поля для хранения всего поля скоростей во все моменты
-    # времени и хранения скоростей в отдельном узле для своего набора моментов времени.
-    # Эти скорости будут вычислены с общим набором common и space data но разным набором time data.
-    # Соответсвенно необходимо реализовать методы переопределения массивов временом для общего поля и
-    # скорости в узле, методы доступа к этим массивам, методы вычисления к наборам time data,
-    # методы вычисления и доступа к самим скоростям.
-
-

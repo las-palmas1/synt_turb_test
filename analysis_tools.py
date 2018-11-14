@@ -10,10 +10,10 @@ class Analyzer:
         self.generator.compute_aux_data_time_field()
         self.generator.compute_velocity_field()
 
-    def plot_2d_velocity_field(self, figsize=(7, 7), num_levels=20, vmin=-3.5, vmax=3.5, grid=True, **kwargs):
+    def plot_2d_velocity_field(self, figsize=(7, 7), num_levels=20, vmin=-3.5, vmax=3.5, grid=True):
         x = self.generator.block.mesh[0][:, :, 0]
         y = self.generator.block.mesh[1][:, :, 0]
-        u3d, v3d, w3d = self.generator.get_velocity_field(0, **kwargs)
+        u3d, v3d, w3d = self.generator.get_velocity_field(0)
         u = u3d[:, :, 0]
         v = v3d[:, :, 0]
         w = w3d[:, :, 0]
@@ -115,10 +115,10 @@ class Analyzer:
         plt.grid()
         plt.show()
 
-    def plot_divergence_field_2d(self, figzie=(7, 7), num_levels=20, vmin=-300, vmax=300, grid=True, **kwargs):
+    def plot_divergence_field_2d(self, figzie=(7, 7), num_levels=20, vmin=-300, vmax=300, grid=True):
         x = self.generator.block.mesh[0][:, :, 0]
         y = self.generator.block.mesh[1][:, :, 0]
-        vel = self.generator.get_velocity_field(0, **kwargs)
+        vel = self.generator.get_velocity_field(0)
         div = self.generator.get_divergence(vel, self.generator.block.mesh, self.generator.block.shape)
         div_2d = div[:, :, 0]
 
@@ -152,7 +152,7 @@ class Analyzer:
         v0v0_av = self._get_average(v0 * v0)
         w0w0_av = self._get_average(w0 * w0)
 
-        for n in range(1, num):
+        for n in range(0, num):
             i = i0 + di * n
             j = j0 + dj * n
             k = k0 + dk * n
@@ -189,7 +189,8 @@ class Analyzer:
     ):
         """
         :param num_dt - число отрезков между моментами t1 и t2.
-        :param num_dt_av - число отрезков между моментами t0 и t1 и оно же - число отрезков ни интервале осреднения.
+        :param num_dt_av - число отрезков между моментами t0 и t1 и оно же - половина числа
+            отрезков ни интервале осреднения.
 
         1. Момент t2 определяется как t1 + num_dt * (t1 - t0) / num_dt_av.
         2. Момент t3 определяется как t2 + (t1 - t0).
@@ -197,7 +198,7 @@ class Analyzer:
         4. Пульсации считаются во всех точках между моментами t0 и t3.
         5. Интервал осреднения T = t1 - t0, шаг dt = (t1 - t0) / num_dt_av.
         6. Осреднение проводится от момента t1 - T + i * num_dt_av до момента
-            t1 + T + i * num_dt_av, где i = 0, 1, ... num_dt1.
+            t1 + T + i * num_dt_av, где i = 0, 1, ... num_dt.
         """
         t2 = t1 + num_dt * (t1 - t0) / num_dt_av
         t3 = t2 + t1 - t0
