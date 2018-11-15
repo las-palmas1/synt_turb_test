@@ -146,7 +146,7 @@ class Analyzer:
 
     def plot_moments(
             self, i: int, j: int, k: int, ts: float, num_ts: int, figsize=(7, 7), ylim=(-0.5, 1),
-            legent_fsize=14, ticks_fsize=12, label_fsize=14, axes=(0.07, 0.07, 0.9, 0.87), fname=None
+            legend_fsize=14, ticks_fsize=12, label_fsize=14, axes=(0.07, 0.07, 0.9, 0.87), fname=None
     ):
         t_arr = np.arange(0, ts * num_ts, ts)
         self.generator.set_puls_node(i, j, k)
@@ -171,7 +171,7 @@ class Analyzer:
         plt.plot(t_arr, uw_av, lw=1.5, color='blue', ls=':', label=r'$<v_x v_z>$')
         plt.plot(t_arr, vw_av, lw=1.5, color='green', ls=':', label=r'$<v_y v_z>$')
 
-        plt.legend(fontsize=legent_fsize)
+        plt.legend(fontsize=legend_fsize)
         plt.xticks(fontsize=ticks_fsize, fontweight='bold')
         plt.yticks(fontsize=ticks_fsize, fontweight='bold')
         plt.xlabel('t, с', fontsize=label_fsize, fontweight='bold')
@@ -259,7 +259,7 @@ class Analyzer:
         plt.xlim(xmin=0, xmax=r.max())
         if ylim:
             plt.ylim(*ylim)
-        plt.xlabel('r, м$', fontsize=label_fsize, fontweight='bold')
+        plt.xlabel('r, м', fontsize=label_fsize, fontweight='bold')
         plt.xticks(fontsize=ticks_fsize, fontweight='bold')
         plt.yticks(fontsize=ticks_fsize, fontweight='bold')
         plt.legend(fontsize=legend_fsize)
@@ -405,8 +405,12 @@ class Analyzer:
         plt.plot(k_v, e_v, color='blue', label=r'$E_v$', lw=1.5)
         plt.plot(k_w, e_w, color='green', label=r'$E_w$', lw=1.5)
         plt.plot(k_w, e_u + e_v + e_w, color='black', label=r'$E_\Sigma$', lw=2.5)
-        k = np.logspace(-2, 1, 100)
-        plt.plot(k, self.generator.get_desired_spectrum(k), color='black', ls='--', lw=1.5, label='Заданный')
+
+        k = np.logspace(-2, 1, 500)
+        if (self.generator.get_desired_spectrum(k) == 0).all():
+            pass
+        else:
+            plt.plot(k, self.generator.get_desired_spectrum(k), color='black', ls='--', lw=1.5, label='Заданный')
 
         if ylim:
             plt.ylim(*ylim)
@@ -439,8 +443,12 @@ class Analyzer:
         if axes:
             plt.axes(axes)
         plt.plot(k, e, color='red', lw=2.5, label=r'$E_\Sigma$', )
+
         k = np.logspace(-2, 1, 100)
-        plt.plot(k, self.generator.get_desired_spectrum(k), color='black', ls='--', lw=1.5, label='Заданный')
+        if (self.generator.get_desired_spectrum(k) == 0).all():
+            pass
+        else:
+            plt.plot(k, self.generator.get_desired_spectrum(k), color='black', ls='--', lw=1.5, label='Заданный')
 
         if ylim:
             plt.ylim(*ylim)

@@ -18,7 +18,6 @@ class LundTest(unittest.TestCase):
         self.generator = Lund(
             block=self.block,
             u_av=(0., 0., 0.),
-            l_t=0.1,
             re_xx=1.,
             re_yy=1.,
             re_zz=1.,
@@ -68,12 +67,12 @@ class SmirnovTest(unittest.TestCase):
     как и в статье, в которой изложен данный метод.
     """
     def setUp(self):
-        n = 70
+        n = 55
         size = 20
-        # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
-        mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])
+        mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
+        # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])
         self.block = Block(
-            shape=(n, n, 2),
+            shape=(n, n, n),
             mesh=(mesh[1], mesh[0], mesh[2]),
             bc=[(BCType.NotWall, BCType.NotWall), (BCType.NotWall, BCType.NotWall), (BCType.NotWall, BCType.NotWall)]
         )
@@ -119,12 +118,12 @@ class SmirnovTest(unittest.TestCase):
         self.analyzer.plot_spectrum_2d(num_pnt=200)
 
     def test_plot_spectrum_3d(self):
-        self.analyzer.plot_spectrum_3d(num_pnt=200)#
+        self.analyzer.plot_spectrum_3d(num_pnt=200)
 
 
 class DavidsonTest(unittest.TestCase):
     def setUp(self):
-        n = 150
+        n = 50
         size = 0.1 * n
         mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
         # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])
@@ -136,7 +135,7 @@ class DavidsonTest(unittest.TestCase):
         self.generator = Davidson(
             block=self.block,
             u_av=(0., 0., 0.),
-            l_t=5,
+            l_t=2,
             tau_t=0.01,
             num_modes=1000,
             viscosity=1.42e-5,
@@ -171,7 +170,7 @@ class DavidsonTest(unittest.TestCase):
 
     def test_plot_two_point_time_correlation(self):
         self.analyzer.plot_two_point_time_correlation(
-            i=0, j=0, k=0, t0=0, t1=1, num_dt_av=4000, num_dt=500
+            i=0, j=0, k=0, t0=0, t1=1, num_dt_av=4000, num_dt=200
         )
 
     def test_plot_spectrum_2d(self):
@@ -183,7 +182,7 @@ class DavidsonTest(unittest.TestCase):
 
 class OriginalSEMTest(unittest.TestCase):
     def setUp(self):
-        n = 90
+        n = 70
         size = 6.28
         # mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), np.linspace(0, size, n))
         mesh = np.meshgrid(np.linspace(0, size, n), np.linspace(0, size, n), [0, size / (n - 1)])

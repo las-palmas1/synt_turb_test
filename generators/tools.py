@@ -88,7 +88,7 @@ def davidson_compute_velocity_pulsation(
     return res
 
 
-@nb.jit
+@nb.njit(parallel=True)
 def smirnov_compute_velocity_field(
         k1: np.ndarray, k2: np.ndarray, k3: np.ndarray, p1: np.ndarray, p2: np.ndarray, p3: np.ndarray,
         q1: np.ndarray, q2: np.ndarray, q3: np.ndarray,
@@ -105,7 +105,7 @@ def smirnov_compute_velocity_field(
     v3 = np.zeros(shape)
     for i in range(shape[0]):
         for j in range(shape[1]):
-            for k in range(shape[2]):
+            for k in nb.prange(shape[2]):
                 k1_p = k1 * (l_t / tau_t) / c1
                 k2_p = k2 * (l_t / tau_t) / c2
                 k3_p = k3 * (l_t / tau_t) / c3
@@ -143,7 +143,7 @@ def smirnov_compute_velocity_field(
     return res
 
 
-@nb.jit
+@nb.njit(parallel=True)
 def smirnov_compute_pulsation(
         k1: np.ndarray, k2: np.ndarray, k3: np.ndarray, p1: np.ndarray, p2: np.ndarray, p3: np.ndarray,
         q1: np.ndarray, q2: np.ndarray, q3: np.ndarray,
@@ -157,7 +157,7 @@ def smirnov_compute_pulsation(
     v1 = np.zeros(time.shape)
     v2 = np.zeros(time.shape)
     v3 = np.zeros(time.shape)
-    for n in range(time.shape[0]):
+    for n in nb.prange(time.shape[0]):
         k1_p = k1 * (l_t / tau_t) / c1
         k2_p = k2 * (l_t / tau_t) / c2
         k3_p = k3 * (l_t / tau_t) / c3
@@ -198,7 +198,7 @@ def original_sem_compute_velocity_field(
         a31: float, a32: float, a33: float,
 ):
     shape = x.shape
-    res = []
+    res = np.zeros((positions.shape[0], 3, shape[0], shape[1], shape[2]))
     for n in range(positions.shape[0]):
         x_e = positions[n, 0, :]
         y_e = positions[n, 1, :]
@@ -231,7 +231,9 @@ def original_sem_compute_velocity_field(
                     u[i, j, k] = a11 * u1 + a12 * v1 + a13 * w1
                     v[i, j, k] = a21 * u1 + a22 * v1 + a23 * w1
                     w[i, j, k] = a31 * u1 + a32 * v1 + a33 * w1
-        res.append((u, v, w))
+        res[n, 0, :, :, :] = u
+        res[n, 1, :, :, :] = v
+        res[n, 2, :, :, :] = w
         return res
 
 

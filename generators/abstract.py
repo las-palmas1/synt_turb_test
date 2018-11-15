@@ -80,7 +80,7 @@ class Generator(metaclass=ABCMeta):
         """Для спектральных методов следует переопределить. По умолчанию возвращает ноль."""
         return 0.
 
-    def get_desired_spectrum(self, k_arr: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def get_desired_spectrum(self, k_arr: np.ndarray) -> np.ndarray:
         E_arr = np.array([self._get_energy_desired(k) for k in k_arr])
         return E_arr
 

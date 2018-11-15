@@ -12,13 +12,12 @@ from generators.tools import smirnov_compute_velocity_field, smirnov_compute_pul
 
 class Lund(Generator):
     def __init__(
-            self, block: Block, u_av: Tuple[float, float, float], l_t: float,
+            self, block: Block, u_av: Tuple[float, float, float],
             re_xx: float, re_yy: float, re_zz: float,
             re_xy: float, re_xz: float, re_yz: float,
             time_arr: np.ndarray
     ):
         Generator.__init__(self, block, u_av, re_xx, re_yy, re_zz, re_xy, re_xz, re_yz, time_arr)
-        self.l_t = l_t
 
     def _compute_cholesky(self):
         """Вычисление разложения тензора рейнольдсовых напряжений по Холецкому в каждой точке."""
@@ -555,7 +554,7 @@ class OriginalSEM(Generator):
         return (np.abs(x) < 1) * (np.sqrt(1.5) * (1 - np.abs(x)))
 
     def compute_velocity_field(self):
-        self._vel_field = original_sem_compute_velocity_field(
+        vel = original_sem_compute_velocity_field(
             positions=self.eddy_positions_field,
             x=self.block.mesh[0], y=self.block.mesh[1], z=self.block.mesh[2],
             sigma=self.sigma, volume=self.volume, eddy_num=self.eddy_num,
@@ -563,6 +562,8 @@ class OriginalSEM(Generator):
             a21=self.a21, a22=self.a22, a23=self.a23,
             a31=self.a31, a32=self.a32, a33=self.a33,
         )
+        for i in range(vel.shape[0]):
+            self._vel_field.append((vel[i, 0, :, :, :], vel[i, 1, :, :, :], vel[i, 2, :, :, :]))
 
     def compute_pulsation_at_node(self):
         i, j, k = self.get_puls_node()
