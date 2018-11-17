@@ -9,8 +9,8 @@ axes_spectrum = (0.15, 0.11, 0.82, 0.86)
 
 # размеры шрифтов
 legend_fsize = 14
-ticks_fsize = 12
-label_fsize = 14
+ticks_fsize = 14
+label_fsize = 16
 
 # пределы по вертикальной оси для различных графиков
 ylim_vel = (-3, 3)

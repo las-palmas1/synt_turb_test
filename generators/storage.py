@@ -258,7 +258,7 @@ class Davidson(Generator):
         self.alpha = fsolve(
             lambda x: [self._get_k_from_spectrum(x[0], self.delta_min) - self.k_t], x0=np.array([1.4])
         )[0]
-        # self.alpha = 1.483
+        self.alpha = 1.483
         self.k_e = self.alpha * 9 * np.pi / (55 * self.l_t)
         self.k_min = self.k_e / 2
 

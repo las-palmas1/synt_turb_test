@@ -444,12 +444,13 @@ class Analyzer:
             plt.axes(axes)
         plt.plot(k, e, color='red', lw=2.5, label=r'$E_\Sigma$', )
 
-        k = np.logspace(-2, 1, 100)
+        k = np.logspace(-2, 3, 100)
         if (self.generator.get_desired_spectrum(k) == 0).all():
             pass
         else:
             plt.plot(k, self.generator.get_desired_spectrum(k), color='black', ls='--', lw=1.5, label='Заданный')
-
+        k_53 = np.logspace(-2, 2, 100)
+        plt.plot(0.5 * k_53**(-5 / 3), k_53, color='black', ls=':', lw=1.5, label=r'$\sim k^{-\frac{5}{3}}$')
         if ylim:
             plt.ylim(*ylim)
         if xlim:
